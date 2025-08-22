@@ -1,7 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app import models, schemas, crud, database
+import os
 
+# Drop tables if testing (to ensure clean state)
+if os.getenv("TESTING"):
+    models.Base.metadata.drop_all(bind=database.engine)
+
+# Create tables
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI()
@@ -16,7 +22,7 @@ def get_todos(db: Session = Depends(database.get_db)):
 
 @app.put("/todos/{todo_id}", response_model=schemas.TodoResponse)
 def update_todo(todo_id: str, todo: schemas.TodoUpdate, db: Session = Depends(database.get_db)):
-    if not todo.model_dump(exclude_unset=True):
+    if not todo.dict(exclude_unset=True):
         raise HTTPException(status_code=422, detail="At least one field must be provided")
     updated = crud.update_todo(db, todo_id, todo)
     if not updated:

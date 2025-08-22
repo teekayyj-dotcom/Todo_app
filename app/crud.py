@@ -27,7 +27,7 @@ def update_todo(db: Session, todo_id: str, todo_data: schemas.TodoUpdate):
         id_int = int(todo_id)
         db_todo = db.query(models.Todo).filter(models.Todo.id == id_int).first()
         if db_todo:
-            update_data = todo_data.model_dump(exclude_unset=True)
+            update_data = todo_data.dict(exclude_unset=True)
             for field, value in update_data.items():
                 setattr(db_todo, field, value)
             db.commit()

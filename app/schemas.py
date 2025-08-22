@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, validator
 from typing import Optional
 from datetime import datetime
 
@@ -9,21 +9,29 @@ class TodoBase(BaseModel):
 class TodoCreate(BaseModel):
     title: str
 
+    @validator('title', pre=True)
+    def validate_title(cls, v):
+        if not isinstance(v, str):
+            raise ValueError('title must be a string')
+        if len(str(v).strip()) == 0:
+            raise ValueError('title cannot be empty')
+        return v
+
 class TodoUpdate(BaseModel):
     title: Optional[str] = None
     completed: Optional[bool] = None
 
 class TodoResponse(TodoBase):
-    model_config = ConfigDict(from_attributes=True)
-    
     id: int
     created_at: datetime
     updated_at: datetime
 
-    @field_serializer('id')
-    def serialize_id(self, id: int, _info):
-        return str(id)
+    class Config:
+        orm_mode = True
 
-    @field_serializer('created_at', 'updated_at')
-    def serialize_datetime(self, dt: datetime, _info):
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    def dict(self, *args, **kwargs):
+        d = super().dict(*args, **kwargs)
+        d['id'] = str(d['id'])
+        d['created_at'] = d['created_at'].strftime("%Y-%m-%d %H:%M:%S")
+        d['updated_at'] = d['updated_at'].strftime("%Y-%m-%d %H:%M:%S")
+        return d
